@@ -1,0 +1,174 @@
+---
+Assignment: 6
+Name: Vishal Shailesh Pawar
+date: "11/8/2022"
+output: html_document
+---
+Data is based on trend and seasonality of gold price falling in duration interval jan-2015 to july 2020. Where price of gold is effected by various parameters geopolitical events, inflation, interest rates, currency fluctuations, and more. Our task is to forecast using different parameters and finding the best approach and outcome
+```{r}
+library(fpp)
+library(fpp2)
+library(forecast)
+library(readxl)
+```
+
+```{r}
+gold_price <- read_excel("C:/Rutgers/Subjects/Fall Sem/BF/Assignment/week 4/files/gold_price.xlsx") #to import excel file
+
+View(gold_price) #view attributes and records in data
+
+DataFrame<- data.frame(gold_price$Date,gold_price$Price) #load data
+View(DataFrame)
+
+TimeSeries<-ts(DataFrame$gold_price.Price,start=c(2015,01),end=c(2020,07),frequency=12) 
+
+plot(TimeSeries) #plot time Series
+```
+Data converted to timeseries using ts() function to map gold price values with time frame in order to compute different forecasting models. Ranging from (jan-2015 to july-2020)
+
+Time series plotted on line chart
+Analysis based on obervations:
+Data is seasonal: As price of gold is observed to always drop in the late months of a year (sept - dec) and there is an increase by start of next year.
+Also, the price of gold shows increasing curve (trend) as the years pass by
+```{r}
+ndiffs(TimeSeries)
+```
+function suggests using a value of 2 to make a time series steady, it means that you might need to subtract the data from itself twice to make it steady for analysis. This process helps remove any patterns or trends that change over time.
+```{r}
+tsdisplay(TimeSeries)
+```
+tsdisplay(): It is a function consisting if forecasting package:
+(1.) Time series plot
+(2.) Seasonal plot
+(3.) ACF
+(4.) PACF
+
+ACF: Displays correlation for all the lags in data. Indicating high correlation with the values in the beginning but the correlation decreases as years pass because there is an increasing trend which indicates increase the difference between initial price and price later in time series indicating strong trend component.
+
+PACF: Displays partial correlation between observations at different time lags after removing influence of different time lag.
+
+```{r}
+timeseriesdiff1 <- diff(TimeSeries, differences=1)
+plot(timeseriesdiff1)
+timeseriesdiff2 <- diff(timeseriesdiff1, differences=1)
+plot(timeseriesdiff2)
+```
+As we got 2 as output for ndiff as 2 hence we need to apply diff 2 times and observer output for difference = 1,2
+As per observation we can deduce that both differences = 1, 2 are good as we can create difference based on goal to achieve but too much difference removal can lead to loss in important data componenets
+```{r}
+tsdisplay(timeseriesdiff1)
+```
+ACF, PACF: Displays correlation and partial correlation for all the lags in data. Indicating high correlation. ACF for time series difference with difference = 1 shows seasonality is remaining component with difference due to repetitive pattern 
+
+```{r}
+tsdisplay(timeseriesdiff2)
+```
+following ACF and PACF for difference = 2 indicates reduction of random seasonality and trend 
+```{r}
+auto_fit <- auto.arima(TimeSeries, trace=TRUE, stepwise = FALSE)
+auto_fit
+```
+auto.arima() function employs an algorithm that searches through various combinations of ARIMA models
+
+It shows the step-by-step progress of the algorithm, including the models being evaluated and tested.
+
+A non-stepwise search means that the function explores a broader range of potential models without being restricted to a stepwise procedure.
+
+As per observation ARIMA(1,2,1) is best 
+
+order of the AutoRegressive (AR) = 1
+In ARIMA(1,2,1), there is one lagged term used in the autoregressive component.
+
+order of differencing = 2
+In ARIMA(1,2,1), the data has been differenced twice to achieve stationarity before modeling.
+ 
+order of the Moving Average = 1
+In ARIMA(1,2,1), there is one lagged moving average term included in the model.
+
+(Q3) Perform and Plot the forecast for the next five periods
+```{r}
+attributes(auto_fit)
+plot(forecast(auto_fit,h=5,level=c(99)))
+```
+Forecast predicts that values will follow the trend im future which visually seems to be correct but does not consider seasonality
+
+(2.) Run Residual Analysis
+```{r}
+#Residual Analysis
+Acf(auto_fit$residuals)
+
+plot.ts(residuals(auto_fit))
+
+hist(auto_fit$residuals)
+```
+
+ACF of residuals seem to be cyclic but appropriate as lags are below the reference line
+
+histgram shows high frequency for residual values between -45 to 45
+```{r}
+tsdiag(auto_fit)
+```
+tsdiag displays : It gives you different pictures to look at to see if the leftover patterns or behaviors in the data (called residuals) match what the model expected. Finding differences in these pictures helps you make the model better or choose a different one that works well with your data.
+
+As per observation it displays: Standardized residuals, ACF of Residuals,
+p values for Ljung-Box statistic
+
+```{r}
+# for Seasonal Data component
+plot(TimeSeries)
+nsdiffs(TimeSeries)
+```
+
+```{r}
+ndiffs(TimeSeries)
+```
+```{r}
+ndiffs((diff(TimeSeries,2)))
+```
+
+```{r}
+tsdisplay(diff(diff(TimeSeries,2)))
+```
+function suggests using a value of 1 to make a time series steady, it means that you might need to subtract the data from itself single time to make it steady for analysis. This process helps remove any patterns or trends that change over time.
+```{r}
+AUTO_fit3 <- auto.arima(TimeSeries,trace=TRUE, stepwise = FALSE )
+AUTO_fit3
+```
+
+As per observation ARIMA(1,2,1) is best 
+
+order of the AutoRegressive (AR) = 1
+In ARIMA(1,2,1), there is one lagged term used in the autoregressive component.
+
+order of differencing = 2
+In ARIMA(1,2,1), the data has been differenced twice to achieve stationarity before modeling.
+ 
+order of the Moving Average = 1
+In ARIMA(1,2,1), there is one lagged moving average term included in the model
+```{r}
+#Residual Analysis
+Acf(AUTO_fit3$residuals)
+```
+```{r}
+plot.ts(residuals(AUTO_fit3))
+```
+
+```{r}
+hist(AUTO_fit3$residuals)
+tsdiag(AUTO_fit3)
+```
+ACF of residuals seem to be cyclic but appropriate as lags are below the reference line
+
+histgram shows high frequency for residual values between -45 to 45
+
+```{r}
+attributes(AUTO_fit3)
+plot(forecast(AUTO_fit3,h=5,level=c(99)))
+```
+Similar output to previous forecast for period of 5 years with increase in trend value with minimal effect to seasonality
+```{r}
+accuracy(AUTO_fit3)
+
+```
+Accuracy is good for ACF1 which is -0.0208 which is very low score and indicates high accuracy.
+Also good MPE,MASE
